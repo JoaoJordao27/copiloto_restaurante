@@ -1,0 +1,15 @@
+# Chave da API (NUNCA versionar)
+.env
+
+# Ambientes e caches
+.venv/
+venv/
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+
+# Sistema / editor
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
