@@ -71,9 +71,9 @@ cabeçalho `X-Token`).
 - Relatório, regras de alerta e servidor: testes automatizados (`python -m pytest automacao -q`), inclusive o token e
   os erros 400/404/401.
 - Resumo por IA e HTML do e-mail: executados de verdade e conferidos.
-- **O fluxo do n8n não foi executado dentro do n8n** (não dá para instalar o n8n no ambiente de desenvolvimento).
-  O JSON segue o formato de importação, mas se algum nó pedir ajuste ao importar (versão do n8n, credencial),
-  é só corrigir na tela.
+- **O fluxo foi executado no n8n 2.47 (Docker)**: importação do JSON, chamada ao servidor com token, e envio real do
+  e-mail por SMTP (Gmail com senha de app). Só é preciso trocar token, remetente e destinatário na tela.
+- O agendamento das 08:00 só dispara com o computador, o Docker e o `servidor.py` ligados.
 
 ## Ideias para evoluir
 
