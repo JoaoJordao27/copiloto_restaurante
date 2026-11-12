@@ -29,6 +29,22 @@ html, body, .stApp, button, input, textarea, label,
 }
 #MainMenu, footer, [data-testid="stToolbar"], [data-testid="stDecoration"] { visibility: hidden; }
 [data-testid="stHeader"] { background: transparent; }
+
+/* Botão para reabrir o menu lateral: sempre visível, grande e com o rótulo "Menu" */
+[data-testid="stExpandSidebarButton"] {
+  position: fixed; top: 14px; left: 14px; z-index: 1000;
+  display: inline-flex; align-items: center; gap: .4rem;
+  background: #1B4F47 !important; color: #F8F0DC !important;
+  border: 2px solid #EDA417 !important; border-radius: 999px !important;
+  padding: .45rem .95rem .45rem .7rem !important;
+  box-shadow: 0 4px 14px rgba(27, 79, 71, .35);
+  opacity: 1 !important; visibility: visible !important;
+}
+[data-testid="stExpandSidebarButton"]::after {
+  content: "Menu"; font: 600 .9rem Inter, sans-serif; color: #F8F0DC;
+}
+[data-testid="stExpandSidebarButton"] * { color: #F8F0DC !important; fill: #F8F0DC !important; }
+[data-testid="stExpandSidebarButton"]:hover { background: #256B60 !important; }
 [data-testid="stBottom"] > div, [data-testid="stBottomBlockContainer"] { background: transparent; }
 .block-container { max-width: 880px; padding: 4.5rem 2rem 3rem; }
 
