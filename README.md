@@ -2,6 +2,8 @@
 
 > Projeto em construção.
 
+🚀 **[Experimente online](https://copiloto-restaurante.streamlit.app/)**
+
 Agente de IA que ajuda o dono de um restaurante de delivery a entender suas vendas e avaliações em linguagem natural. Ele recebe a pergunta em português, escreve as consultas SQL, lê os resultados e responde de forma direta, mostrando também como chegou nos números.
 
 Todos os dados são **sintéticos** (jun–out/2026, 3 unidades), gerados por `dados/gerar_dados.py`. O projeto não usa dados reais nem marcas de terceiros.
