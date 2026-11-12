@@ -8,16 +8,18 @@ Agente de IA que ajuda o dono de um restaurante de delivery a entender suas vend
 
 Todos os dados são **sintéticos** (jun–out/2026, 3 unidades), gerados por `dados/gerar_dados.py`. O projeto não usa dados reais nem marcas de terceiros.
 
-![Tela inicial do Copiloto](docs/inicio.png)
+![Chat com gráfico gerado pelo agente](docs/chat_grafico.png)
 
-![Conversa investigando a queda de faturamento](docs/conversa.png)
+![Triagem de avaliações com IA](docs/triagem.png)
 
 ## O que já funciona
 
 - 💬 **Chat com agente de análise**: perguntas abertas como "por que o faturamento caiu em outubro?" fazem o agente investigar períodos, unidades, cancelamentos e avaliações antes de concluir.
+- 📈 **Gráficos nas respostas**: o agente decide quando um gráfico ajuda e o desenha (Plotly) a partir de uma consulta SQL.
+- 🧾 **Triagem de avaliações**: a IA classifica cada comentário (sentimento, tema, urgência), resume os problemas mais frequentes e escreve um rascunho de resposta para o cliente.
 - 🔒 **SQL somente leitura**: o agente só executa `SELECT`, com o banco aberto em modo read-only.
 - 🔎 **Transparência**: cada resposta traz as consultas SQL usadas.
-- 📈 **Indicadores na barra lateral** e sugestões de perguntas para começar.
+- 🛡️ **Limite de uso**: máximo de consultas por visitante e por dia, para proteger a cota gratuita do Gemini na demo pública.
 
 ## Como rodar
 
@@ -52,8 +54,7 @@ O modelo pode ser trocado com `MODELO_GEMINI` no `.env` (padrão: `gemini-3.5-fl
 
 ## Planejado
 
-- 📊 Gráficos nas respostas e dashboard de indicadores
-- 🧾 Triagem de avaliações: classificação, resumo e sugestão de resposta
+- 📊 Dashboard de indicadores
 - ⏰ Automação diária de relatório (n8n)
 - ✅ Avaliação da qualidade do agente com casos de teste
 

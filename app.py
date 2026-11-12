@@ -1,10 +1,18 @@
-"""Chat do Copiloto do Restaurante.  Rodar com:  streamlit run app.py"""
+"""Copiloto do Restaurante: chat analítico + triagem de avaliações.
+
+Rodar com:  streamlit run app.py
+"""
 
 import sqlite3
+import threading
+from datetime import date
 
+import pandas as pd
+import plotly.express as px
 import streamlit as st
 
 from agente.agente import BANCO, perguntar
+from agente.triagem import MAX_AVALIACOES, sugerir_resposta, triar
 
 st.set_page_config(page_title="Copiloto do Restaurante", page_icon="🍽️", layout="centered")
 
@@ -46,12 +54,45 @@ SUGESTOES = [
     "Quais são os 5 itens mais vendidos?",
     "Como estão os cancelamentos por unidade?",
 ]
+PALETA = ["#E8590C", "#2B8A3E", "#1971C2", "#F59F00", "#862E9C", "#868E96"]
+MESES = {"Todos": None, "Jun/2026": "2026-06", "Jul/2026": "2026-07", "Ago/2026": "2026-08",
+         "Set/2026": "2026-09", "Out/2026": "2026-10"}
+
+# --- Limite de uso (protege a cota gratuita do Gemini num app público) ---------------------
+LIMITE_SESSAO = 15  # chamadas de IA por visitante
+LIMITE_DIARIO = 300  # chamadas de IA por dia, somando todos os visitantes
+
+
+@st.cache_resource
+def _contador_global():
+    return {"dia": date.today(), "n": 0, "lock": threading.Lock()}
+
+
+def reservar_uso() -> str | None:
+    """Conta uma chamada de IA. Devolve uma mensagem de bloqueio, ou None se está liberado."""
+    if st.session_state.usos >= LIMITE_SESSAO:
+        return (f"Você atingiu o limite de {LIMITE_SESSAO} consultas desta demonstração. "
+                "Atualize a página para recomeçar ou fale comigo para ver mais! 🙂")
+    g = _contador_global()
+    with g["lock"]:
+        if g["dia"] != date.today():
+            g["dia"], g["n"] = date.today(), 0
+        if g["n"] >= LIMITE_DIARIO:
+            return "A demonstração atingiu o limite de uso de hoje. Volte amanhã! 🙂"
+        g["n"] += 1
+    st.session_state.usos += 1
+    return None
+
+
+# --- Dados ----------------------------------------------------------------------------------
+def _conectar():
+    return sqlite3.connect(f"file:{BANCO}?mode=ro", uri=True)
 
 
 @st.cache_data(ttl=600)
 def indicadores():
     """KPIs de outubro/2026 (último mês dos dados) para a barra lateral."""
-    con = sqlite3.connect(f"file:{BANCO}?mode=ro", uri=True)
+    con = _conectar()
     try:
         fat, ped = con.execute(
             "SELECT SUM(valor_total), COUNT(*) FROM pedidos "
@@ -66,10 +107,22 @@ def indicadores():
     return fat or 0, ped or 0, canc or 0, nota or 0
 
 
+@st.cache_data(ttl=600)
+def carregar_avaliacoes() -> pd.DataFrame:
+    con = _conectar()
+    try:
+        return pd.read_sql_query(
+            "SELECT id, data, unidade, nota, comentario FROM avaliacoes ORDER BY data DESC, id DESC", con
+        )
+    finally:
+        con.close()
+
+
 def brl(v: float) -> str:
     return "R$ " + f"{v:,.0f}".replace(",", ".")
 
 
+# --- Componentes ----------------------------------------------------------------------------
 def mostrar_sqls(sqls):
     if sqls:
         with st.expander(f"🔎 Ver como cheguei nisso ({len(sqls)} consulta(s))"):
@@ -77,12 +130,42 @@ def mostrar_sqls(sqls):
                 st.code(s, language="sql")
 
 
+def mostrar_grafico(g: dict, chave: str):
+    df = pd.DataFrame(g["dados"])
+    cor = g.get("cor")
+    rotulo = lambda c: str(c).replace("_", " ").capitalize()  # noqa: E731
+    args = dict(x=g["x"], y=g["y"], color=cor, title=g["titulo"], color_discrete_sequence=PALETA,
+                labels={c: rotulo(c) for c in df.columns})
+    if g["tipo"] == "linha":
+        fig = px.line(df, markers=True, **args)
+    else:
+        fig = px.bar(df, barmode="group", text_auto=".3s", **args)
+    if df[g["x"]].dtype == object or g["tipo"] == "barra":
+        fig.update_xaxes(type="category")  # evita eixo contínuo com datas "soltas"
+    fig.update_layout(
+        paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+        margin=dict(l=10, r=10, t=50, b=10), legend_title_text="", yaxis_gridcolor="#EADBCB",
+    )
+    st.plotly_chart(fig, width="stretch", key=chave)
+
+
+def hero(subtitulo: str, titulo: str = "🍽️ Copiloto do Restaurante"):
+    st.markdown(
+        f'<div class="hero"><h1>{titulo}</h1><p>{subtitulo}</p></div>', unsafe_allow_html=True
+    )
+
+
+# --- Estado e barra lateral -----------------------------------------------------------------
 st.session_state.setdefault("mensagens", [])  # histórico exibido
 st.session_state.setdefault("historico", [])  # histórico da API
+st.session_state.setdefault("usos", 0)
 
 with st.sidebar:
     st.markdown("### 🍽️ Sabor da Casa")
     st.caption("Centro · Pinheiros · Vila Nova")
+    pagina = st.radio("Seção", ["💬 Chat com o analista", "🧾 Triagem de avaliações"],
+                      label_visibility="collapsed")
+    st.divider()
     try:
         fat, ped, canc, nota = indicadores()
         st.markdown("**Outubro/2026**")
@@ -93,55 +176,152 @@ with st.sidebar:
     except Exception:
         st.caption("Indicadores indisponíveis.")
     st.divider()
-    if st.button("🧹 Nova conversa", use_container_width=True):
+    if pagina.startswith("💬") and st.button("🧹 Nova conversa", width="stretch"):
         st.session_state.mensagens = []
         st.session_state.historico = []
         st.rerun()
+    st.caption(f"Consultas de IA restantes: {max(LIMITE_SESSAO - st.session_state.usos, 0)}")
     st.caption("Dados sintéticos de jun–out/2026. Feito com Streamlit + Gemini.")
 
-st.markdown(
-    """
-    <div class="hero">
-        <h1>🍽️ Copiloto do Restaurante</h1>
-        <p>Seu analista de dados particular. Pergunte em português sobre vendas,
-        pedidos, entregas e avaliações.</p>
-    </div>
-    """,
-    unsafe_allow_html=True,
-)
 
-pergunta = None
-if not st.session_state.mensagens:
-    st.markdown("**Experimente perguntar:**")
-    for i, s in enumerate(SUGESTOES):
-        if st.button(s, key=f"sug{i}", use_container_width=True):
-            pergunta = s
+# --- Página: chat ---------------------------------------------------------------------------
+def pagina_chat():
+    hero("Seu analista de dados particular. Pergunte em português sobre vendas, pedidos, "
+         "entregas e avaliações.")
 
-for m in st.session_state.mensagens:
-    with st.chat_message(m["role"], avatar="🧑‍🍳" if m["role"] == "user" else "🤖"):
-        st.markdown(m["texto"])
-        mostrar_sqls(m.get("sqls"))
+    pergunta = None
+    if not st.session_state.mensagens:
+        st.markdown("**Experimente perguntar:**")
+        for i, s in enumerate(SUGESTOES):
+            if st.button(s, key=f"sug{i}", width="stretch"):
+                pergunta = s
 
-pergunta = st.chat_input("Ex.: por que as vendas do Centro caíram em outubro?") or pergunta
+    for i, m in enumerate(st.session_state.mensagens):
+        with st.chat_message(m["role"], avatar="🧑‍🍳" if m["role"] == "user" else "🤖"):
+            st.markdown(m["texto"])
+            for j, g in enumerate(m.get("graficos") or []):
+                mostrar_grafico(g, f"g{i}_{j}")
+            mostrar_sqls(m.get("sqls"))
 
-if pergunta:
+    pergunta = st.chat_input("Ex.: por que as vendas do Centro caíram em outubro?") or pergunta
+    if not pergunta:
+        return
+
     st.session_state.mensagens.append({"role": "user", "texto": pergunta})
     with st.chat_message("user", avatar="🧑‍🍳"):
         st.markdown(pergunta)
     with st.chat_message("assistant", avatar="🤖"):
-        with st.spinner("Analisando os dados do restaurante..."):
-            try:
-                texto, hist, sqls = perguntar(pergunta, st.session_state.historico)
-                st.session_state.historico = hist
-            except Exception as e:
-                texto = (
-                    "😕 Não consegui responder agora. O serviço de IA pode estar "
-                    "sobrecarregado, tente de novo em instantes.\n\n"
-                    f"<sub>Detalhe técnico: {str(e)[:200]}</sub>"
-                )
-                sqls = []
+        sqls, graficos = [], []
+        bloqueio = reservar_uso()
+        if bloqueio:
+            texto = bloqueio
+        else:
+            with st.spinner("Analisando os dados do restaurante..."):
+                try:
+                    texto, hist, sqls, graficos = perguntar(pergunta, st.session_state.historico)
+                    st.session_state.historico = hist
+                except Exception as e:
+                    texto = (
+                        "😕 Não consegui responder agora. O serviço de IA pode estar "
+                        "sobrecarregado, tente de novo em instantes.\n\n"
+                        f"<sub>Detalhe técnico: {str(e)[:200]}</sub>"
+                    )
         st.markdown(texto, unsafe_allow_html=True)
+        for j, g in enumerate(graficos):
+            mostrar_grafico(g, f"novo_{len(st.session_state.mensagens)}_{j}")
         mostrar_sqls(sqls)
-    st.session_state.mensagens.append({"role": "assistant", "texto": texto, "sqls": sqls})
-    if len(st.session_state.mensagens) == 2:
-        st.rerun()
+    st.session_state.mensagens.append(
+        {"role": "assistant", "texto": texto, "sqls": sqls, "graficos": graficos}
+    )
+    st.rerun()
+
+
+# --- Página: triagem de avaliações ----------------------------------------------------------
+def pagina_avaliacoes():
+    hero("A IA classifica as avaliações dos clientes, resume os problemas e sugere respostas.",
+         "🧾 Triagem de avaliações")
+    df = carregar_avaliacoes()
+
+    c1, c2, c3 = st.columns([2, 1.2, 1.2])
+    unidades = c1.multiselect("Unidades", sorted(df["unidade"].unique()),
+                              default=sorted(df["unidade"].unique()))
+    mes = c2.selectbox("Mês", list(MESES), index=len(MESES) - 1)
+    nota_max = c3.slider("Nota até", 1, 5, 2)
+
+    f = df[df["unidade"].isin(unidades) & (df["nota"] <= nota_max)]
+    if MESES[mes]:
+        f = f[f["data"].str.startswith(MESES[mes])]
+    f = f.head(MAX_AVALIACOES)
+
+    m1, m2 = st.columns(2)
+    m1.metric("Avaliações selecionadas", len(f))
+    m2.metric("Nota média", f"{f['nota'].mean():.2f}".replace(".", ",") if len(f) else "–")
+    st.caption(f"A análise considera as {MAX_AVALIACOES} avaliações mais recentes do filtro.")
+
+    if f.empty:
+        st.info("Nenhuma avaliação com esses filtros.")
+        return
+
+    if st.button("✨ Analisar com IA", width="stretch"):
+        bloqueio = reservar_uso()
+        if bloqueio:
+            st.warning(bloqueio)
+        else:
+            with st.spinner("Lendo e classificando as avaliações..."):
+                try:
+                    res = triar(f.to_dict("records"))
+                    st.session_state.triagem = {"resultado": res, "base": f.copy()}
+                except Exception as e:
+                    st.error(f"Não consegui analisar agora, tente de novo em instantes. ({str(e)[:150]})")
+
+    t = st.session_state.get("triagem")
+    if not t:
+        st.dataframe(f[["data", "unidade", "nota", "comentario"]], hide_index=True,
+                     width="stretch")
+        return
+
+    st.info(t["resultado"].resumo, icon="💡")
+    classif = pd.DataFrame([i.model_dump() for i in t["resultado"].itens])
+    tab = t["base"].merge(classif, on="id", how="inner")
+    ordem = {"alta": 0, "media": 1, "baixa": 2}
+    tab = tab.sort_values("urgencia", key=lambda s: s.map(ordem))
+
+    temas = tab["tema"].value_counts().reset_index()
+    temas.columns = ["tema", "avaliações"]
+    fig = px.bar(temas, x="avaliações", y="tema", orientation="h", title="Temas mais citados",
+                 color_discrete_sequence=PALETA)
+    fig.update_layout(yaxis=dict(autorange="reversed"), paper_bgcolor="rgba(0,0,0,0)",
+                      plot_bgcolor="rgba(0,0,0,0)", margin=dict(l=10, r=10, t=50, b=10), yaxis_title="")
+    st.plotly_chart(fig, width="stretch", key="temas")
+
+    st.dataframe(
+        tab[["urgencia", "sentimento", "tema", "unidade", "nota", "comentario"]],
+        hide_index=True, width="stretch",
+    )
+
+    st.markdown("#### ✍️ Responder um cliente")
+    rotulos = {r.id: f"#{r.id} · {r.unidade} · {r.nota}⭐ · {r.comentario[:70]}"
+               for r in tab.itertuples()}
+    escolhido = st.selectbox("Avaliação", list(rotulos), format_func=rotulos.get)
+    if st.button("Sugerir resposta"):
+        bloqueio = reservar_uso()
+        if bloqueio:
+            st.warning(bloqueio)
+        else:
+            linha = tab[tab["id"] == escolhido].iloc[0]
+            with st.spinner("Escrevendo uma resposta..."):
+                try:
+                    st.session_state.resposta = sugerir_resposta(
+                        linha["unidade"], int(linha["nota"]), linha["comentario"]
+                    )
+                    st.session_state.resposta_id = escolhido
+                except Exception as e:
+                    st.error(f"Não consegui gerar a resposta agora. ({str(e)[:150]})")
+    if st.session_state.get("resposta") and st.session_state.get("resposta_id") == escolhido:
+        st.text_area("Rascunho (edite antes de publicar)", st.session_state.resposta, height=140)
+
+
+if pagina.startswith("💬"):
+    pagina_chat()
+else:
+    pagina_avaliacoes()
