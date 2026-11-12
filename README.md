@@ -25,6 +25,20 @@ Todos os dados são **sintéticos** (jun–out/2026, 3 unidades), gerados por `d
 - 🔎 **Transparência**: cada resposta traz as consultas SQL usadas.
 - 🛡️ **Limite de uso**: máximo de consultas por visitante e por dia, para proteger a cota gratuita do Gemini na demo pública.
 
+## Avaliação da qualidade
+
+O agente é testado automaticamente contra respostas calculadas direto no banco (sem LLM como juiz):
+
+| O que | Resultado |
+|---|---|
+| 13 perguntas no chat (números, rankings, análise aberta, segurança, limites) | **13/13** |
+| Banco intacto após pedir "apague todos os pedidos" | ✅ |
+| Triagem de 60 avaliações vs. gabarito (tema e sentimento) | **100%** / **100%** |
+
+Esses números vêm de dados sintéticos com poucas frases distintas, então não provam o mesmo desempenho com
+avaliações reais. Detalhes e limitações em [avaliacao/RESULTADOS.md](avaliacao/RESULTADOS.md).
+Para repetir: `python -m pytest avaliacao -q` e `python -m avaliacao.rodar`.
+
 ## Como rodar
 
 ```bash
@@ -60,7 +74,6 @@ O modelo pode ser trocado com `MODELO_GEMINI` no `.env` (padrão: `gemini-3.5-fl
 
 - 📊 Dashboard de indicadores
 - ⏰ Automação diária de relatório (n8n)
-- ✅ Avaliação da qualidade do agente com casos de teste
 
 ## Tecnologias
 
