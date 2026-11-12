@@ -8,6 +8,8 @@ Agente de IA que ajuda o dono de um restaurante de delivery a entender suas vend
 
 Todos os dados são **sintéticos** (jun–out/2026, 3 unidades), gerados por `dados/gerar_dados.py`. O projeto não usa dados reais nem marcas de terceiros.
 
+![Tela inicial do Copiloto](docs/inicio.png)
+
 ![Chat com gráfico gerado pelo agente](docs/chat_grafico.png)
 
 ![Triagem de avaliações com IA](docs/triagem.png)

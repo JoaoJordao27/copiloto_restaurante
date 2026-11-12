@@ -6,6 +6,7 @@ Rodar com:  streamlit run app.py
 import sqlite3
 import threading
 from datetime import date
+from pathlib import Path
 
 import pandas as pd
 import plotly.express as px
@@ -16,36 +17,8 @@ from agente.triagem import MAX_AVALIACOES, sugerir_resposta, triar
 
 st.set_page_config(page_title="Copiloto do Restaurante", page_icon="🍽️", layout="centered")
 
-st.markdown(
-    """
-    <style>
-    #MainMenu, footer {visibility: hidden;}
-    .block-container {padding-top: 4rem; max-width: 820px;}
-    .hero {
-        background: linear-gradient(135deg, #E8590C 0%, #F59F00 100%);
-        color: white; padding: 1.6rem 1.8rem; border-radius: 20px;
-        margin-bottom: 1.2rem; box-shadow: 0 8px 24px rgba(232, 89, 12, .25);
-    }
-    .hero h1 {margin: 0; font-size: 1.9rem; color: white;}
-    .hero p {margin: .3rem 0 0 0; opacity: .95; font-size: 1rem;}
-    [data-testid="stChatMessage"] {
-        background: white; border-radius: 16px; padding: 1rem 1.2rem;
-        box-shadow: 0 2px 10px rgba(0, 0, 0, .06); margin-bottom: .8rem;
-    }
-    div.stButton > button {
-        border-radius: 999px; border: 1px solid #E8590C; color: #E8590C;
-        background: white; text-align: left; transition: all .15s;
-    }
-    div.stButton > button:hover {background: #E8590C; color: white;}
-    [data-testid="stSidebar"] {background: #FFF0E3;}
-    [data-testid="stMetric"] {
-        background: white; padding: .7rem .9rem; border-radius: 14px;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, .05);
-    }
-    </style>
-    """,
-    unsafe_allow_html=True,
-)
+RAIZ = Path(__file__).resolve().parent
+st.markdown(f"<style>{(RAIZ / 'estilo.css').read_text(encoding='utf-8')}</style>", unsafe_allow_html=True)
 
 SUGESTOES = [
     "Como foram as vendas de outubro comparado a setembro?",
@@ -54,7 +27,7 @@ SUGESTOES = [
     "Quais são os 5 itens mais vendidos?",
     "Como estão os cancelamentos por unidade?",
 ]
-PALETA = ["#E8590C", "#2B8A3E", "#1971C2", "#F59F00", "#862E9C", "#868E96"]
+PALETA = ["#1F8A4C", "#EDA417", "#2B63B0", "#D93F77", "#E8742C", "#4F5F57"]
 MESES = {"Todos": None, "Jun/2026": "2026-06", "Jul/2026": "2026-07", "Ago/2026": "2026-08",
          "Set/2026": "2026-09", "Out/2026": "2026-10"}
 
@@ -144,14 +117,44 @@ def mostrar_grafico(g: dict, chave: str):
         fig.update_xaxes(type="category")  # evita eixo contínuo com datas "soltas"
     fig.update_layout(
         paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
-        margin=dict(l=10, r=10, t=50, b=10), legend_title_text="", yaxis_gridcolor="#EADBCB",
+        margin=dict(l=10, r=10, t=50, b=10), legend_title_text="", yaxis_gridcolor="#E5D6B6",
+        font=dict(family="Inter, sans-serif", color="#17332E"),
     )
-    st.plotly_chart(fig, width="stretch", key=chave)
+    st.plotly_chart(fig, width="stretch", key=chave, config={"displayModeBar": False})
 
 
-def hero(subtitulo: str, titulo: str = "🍽️ Copiloto do Restaurante"):
+def cabecalho(linha1: str, destaque: str, texto: str):
     st.markdown(
-        f'<div class="hero"><h1>{titulo}</h1><p>{subtitulo}</p></div>', unsafe_allow_html=True
+        f'<h1 class="titulo">{linha1}<br>{destaque}</h1><p class="lead">{texto}</p>',
+        unsafe_allow_html=True,
+    )
+
+
+def estrelas(nota: float) -> str:
+    """5 estrelas em SVG, preenchidas até `nota` (0 a 5)."""
+    poly = "9,1 11.06,6.17 16.61,6.53 12.33,10.08 13.7,15.47 9,12.5 4.3,15.47 5.67,10.08 1.39,6.53 6.94,6.17"
+    estrela = "".join(f'<polygon points="{poly}" transform="translate({20 * i} 0)"/>' for i in range(5))
+    largura = max(0.0, min(nota / 5, 1.0)) * 98
+    return (
+        f'<svg width="98" height="18" viewBox="0 0 98 18" role="img" aria-label="Nota {nota:.2f} de 5">'
+        f'<defs><g id="estrelas">{estrela}</g><clipPath id="corte"><rect width="{largura:.1f}" height="18"/></clipPath></defs>'
+        '<use href="#estrelas" fill="#4F8A7D"/><use href="#estrelas" clip-path="url(#corte)" fill="#F2B01E"/></svg>'
+    )
+
+
+def barra_lateral_kpis() -> str:
+    fat, ped, canc, nota = indicadores()
+    pedidos = f"{ped:,}".replace(",", ".")
+    cancel = f"{canc:.1%}".replace(".", ",")
+    nota_txt = f"{nota:.2f}".replace(".", ",")
+    return (
+        '<div class="kpi-hero"><div class="l">Faturamento</div>'
+        f'<div class="v"><small>R$</small><b>{fat:,.0f}</b></div></div>'.replace(",", ".")
+        + '<div class="kpi-lista">'
+        f'<div class="linha"><span>Pedidos entregues</span><strong>{pedidos}</strong></div>'
+        f'<div class="linha"><span>Cancelamentos</span><strong>{cancel}</strong></div>'
+        f'<div class="linha"><span>Nota média</span><strong>{estrelas(nota)}{nota_txt}</strong></div>'
+        "</div>"
     )
 
 
@@ -160,23 +163,34 @@ st.session_state.setdefault("mensagens", [])  # histórico exibido
 st.session_state.setdefault("historico", [])  # histórico da API
 st.session_state.setdefault("usos", 0)
 
+LOGO = (
+    '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" '
+    'aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4.5"/></svg>'
+)
+CALENDARIO = (
+    '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F2B01E" stroke-width="1.8" '
+    'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="5" width="16" '
+    'height="15" rx="3"/><path d="M4 10h16M8 3v4M16 3v4"/></svg>'
+)
+
 with st.sidebar:
-    st.markdown("### 🍽️ Sabor da Casa")
-    st.caption("Centro · Pinheiros · Vila Nova")
+    st.markdown(
+        f'<div class="marca"><div class="logo">{LOGO}</div><div><div class="nome">Sabor da Casa</div>'
+        '<div class="sub">Centro · Pinheiros · Vila Nova</div></div></div>',
+        unsafe_allow_html=True,
+    )
     pagina = st.radio("Seção", ["💬 Chat com o analista", "🧾 Triagem de avaliações"],
                       label_visibility="collapsed")
-    st.divider()
+    st.markdown(
+        f'<div class="rotulo" style="margin-top:18px">Período</div>'
+        f'<div class="periodo">{CALENDARIO}<span>Outubro/2026</span></div>',
+        unsafe_allow_html=True,
+    )
     try:
-        fat, ped, canc, nota = indicadores()
-        st.markdown("**Outubro/2026**")
-        st.metric("Faturamento", brl(fat))
-        st.metric("Pedidos entregues", f"{ped:,}".replace(",", "."))
-        st.metric("Cancelamentos", f"{canc:.1%}".replace(".", ","))
-        st.metric("Nota média", f"{nota:.2f} ⭐".replace(".", ","))
+        st.markdown(barra_lateral_kpis(), unsafe_allow_html=True)
     except Exception:
         st.caption("Indicadores indisponíveis.")
-    st.divider()
-    if pagina.startswith("💬") and st.button("🧹 Nova conversa", width="stretch"):
+    if pagina.startswith("💬") and st.button("Nova conversa", width="stretch"):
         st.session_state.mensagens = []
         st.session_state.historico = []
         st.rerun()
@@ -186,15 +200,17 @@ with st.sidebar:
 
 # --- Página: chat ---------------------------------------------------------------------------
 def pagina_chat():
-    hero("Seu analista de dados particular. Pergunte em português sobre vendas, pedidos, "
-         "entregas e avaliações.")
+    cabecalho("Copiloto", "do <em>Restaurante</em>",
+              "Seu analista de dados particular. Pergunte em português sobre vendas, pedidos, "
+              "entregas e avaliações.")
 
     pergunta = None
     if not st.session_state.mensagens:
-        st.markdown("**Experimente perguntar:**")
-        for i, s in enumerate(SUGESTOES):
-            if st.button(s, key=f"sug{i}", width="stretch"):
-                pergunta = s
+        st.markdown('<div class="rotulo">Experimente perguntar</div>', unsafe_allow_html=True)
+        with st.container(key="sugestoes"):
+            for i, texto_sug in enumerate(SUGESTOES):
+                if st.button(texto_sug, key=f"sug{i}", width="stretch"):
+                    pergunta = texto_sug
 
     for i, m in enumerate(st.session_state.mensagens):
         with st.chat_message(m["role"], avatar="🧑‍🍳" if m["role"] == "user" else "🤖"):
@@ -238,8 +254,8 @@ def pagina_chat():
 
 # --- Página: triagem de avaliações ----------------------------------------------------------
 def pagina_avaliacoes():
-    hero("A IA classifica as avaliações dos clientes, resume os problemas e sugere respostas.",
-         "🧾 Triagem de avaliações")
+    cabecalho("Triagem", "de <em>avaliações</em>",
+              "A IA classifica as avaliações dos clientes, resume os problemas e sugere respostas.")
     df = carregar_avaliacoes()
 
     c1, c2, c3 = st.columns([2, 1.2, 1.2])
@@ -291,8 +307,9 @@ def pagina_avaliacoes():
     fig = px.bar(temas, x="avaliações", y="tema", orientation="h", title="Temas mais citados",
                  color_discrete_sequence=PALETA)
     fig.update_layout(yaxis=dict(autorange="reversed"), paper_bgcolor="rgba(0,0,0,0)",
-                      plot_bgcolor="rgba(0,0,0,0)", margin=dict(l=10, r=10, t=50, b=10), yaxis_title="")
-    st.plotly_chart(fig, width="stretch", key="temas")
+                      plot_bgcolor="rgba(0,0,0,0)", margin=dict(l=10, r=10, t=50, b=10), yaxis_title="",
+                      font=dict(family="Inter, sans-serif", color="#17332E"))
+    st.plotly_chart(fig, width="stretch", key="temas", config={"displayModeBar": False})
 
     st.dataframe(
         tab[["urgencia", "sentimento", "tema", "unidade", "nota", "comentario"]],
