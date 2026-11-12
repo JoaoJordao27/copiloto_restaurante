@@ -53,7 +53,7 @@ html, body, .stApp, button, input, textarea, label,
 .marca { display: flex; align-items: center; gap: 14px; margin-bottom: 20px; }
 .marca .logo {
   width: 44px; height: 44px; border-radius: 12px; flex: none; display: grid; place-items: center;
-  background: rgba(255,250,240,.14); border: 1px solid rgba(255,250,240,.16); color: #F2B01E;
+  background: #FFFAF0; border: 1px solid rgba(255,250,240,.4);
 }
 .marca .nome {
   font-family: 'Fraunces', Georgia, serif; font-size: 22px; font-weight: 600;

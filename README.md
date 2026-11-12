@@ -1,4 +1,6 @@
-# 🍽️ Copiloto do Restaurante Parceiro
+<img src="assets/sabor-da-casa-marca.svg" alt="Sabor da Casa" width="72" align="left">
+
+# Copiloto do Restaurante Parceiro
 
 > Projeto em construção.
 

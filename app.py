@@ -15,9 +15,10 @@ import streamlit as st
 from agente.agente import BANCO, perguntar
 from agente.triagem import MAX_AVALIACOES, sugerir_resposta, triar
 
-st.set_page_config(page_title="Copiloto do Restaurante", page_icon="🍽️", layout="centered")
-
 RAIZ = Path(__file__).resolve().parent
+st.set_page_config(page_title="Copiloto do Restaurante", page_icon=str(RAIZ / "assets" / "icone.png"),
+                   layout="centered")
+
 st.markdown(f"<style>{(RAIZ / 'estilo.css').read_text(encoding='utf-8')}</style>", unsafe_allow_html=True)
 
 SUGESTOES = [
@@ -163,9 +164,9 @@ st.session_state.setdefault("mensagens", [])  # histórico exibido
 st.session_state.setdefault("historico", [])  # histórico da API
 st.session_state.setdefault("usos", 0)
 
-LOGO = (
-    '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" '
-    'aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4.5"/></svg>'
+_svg = (RAIZ / "assets" / "sabor-da-casa-marca.svg").read_text(encoding="utf-8")
+LOGO = " ".join(
+    _svg.replace('width="512" height="512"', 'width="40" height="40"').replace("<title>Sabor da Casa</title>", "").split()
 )
 CALENDARIO = (
     '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F2B01E" stroke-width="1.8" '
