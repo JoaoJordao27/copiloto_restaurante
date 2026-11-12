@@ -1,0 +1,151 @@
+{
+  "name": "Relatório diário · Sabor da Casa",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Relatório diário do Sabor da Casa\n\n1. Rode `python automacao/servidor.py` (veja automacao/README.md).\n2. No nó **Buscar relatório**: ajuste a URL (Docker: host.docker.internal; n8n local: localhost) e o token.\n3. No nó **Enviar e-mail**: escolha a credencial SMTP e troque remetente/destinatário.\n4. Clique em **Execute workflow** para testar e depois ative o fluxo (chave no topo).",
+        "height": 260,
+        "width": 520
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -60,
+        -300
+      ],
+      "id": "9b1d0c6a-0f55-4a43-9d57-3b6d6a0f1a01",
+      "name": "Instruções"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 8
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ],
+      "id": "9b1d0c6a-0f55-4a43-9d57-3b6d6a0f1a02",
+      "name": "Todo dia às 08:00"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        180
+      ],
+      "id": "9b1d0c6a-0f55-4a43-9d57-3b6d6a0f1a03",
+      "name": "Teste manual"
+    },
+    {
+      "parameters": {
+        "url": "http://host.docker.internal:8765/relatorio",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "ia",
+              "value": "1"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Token",
+              "value": "troque-este-token"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 120000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        300,
+        90
+      ],
+      "id": "9b1d0c6a-0f55-4a43-9d57-3b6d6a0f1a04",
+      "name": "Buscar relatório"
+    },
+    {
+      "parameters": {
+        "fromEmail": "relatorio@seudominio.com",
+        "toEmail": "dono@seudominio.com",
+        "subject": "={{ $json.assunto }}",
+        "emailFormat": "html",
+        "html": "={{ $json.html }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        600,
+        90
+      ],
+      "id": "9b1d0c6a-0f55-4a43-9d57-3b6d6a0f1a05",
+      "name": "Enviar e-mail",
+      "credentials": {
+        "smtp": {
+          "id": "",
+          "name": "SMTP (configure aqui)"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Todo dia às 08:00": {
+      "main": [
+        [
+          {
+            "node": "Buscar relatório",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Teste manual": {
+      "main": [
+        [
+          {
+            "node": "Buscar relatório",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar relatório": {
+      "main": [
+        [
+          {
+            "node": "Enviar e-mail",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "tags": []
+}

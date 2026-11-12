@@ -23,6 +23,7 @@ Todos os dados são **sintéticos** (jun–out/2026, 3 unidades), gerados por `d
 - 💬 **Chat com agente de análise**: perguntas abertas como "por que o faturamento caiu em outubro?" fazem o agente investigar períodos, unidades, cancelamentos e avaliações antes de concluir.
 - 📈 **Gráficos nas respostas**: o agente decide quando um gráfico ajuda e o desenha (Plotly) a partir de uma consulta SQL.
 - 📊 **Painel de indicadores**: faturamento, ticket médio, cancelamentos, tempo de entrega e nota por unidade e por mês, com filtro de período, comparação com o período anterior e um alerta automático que aponta a unidade com maior queda.
+- ⏰ **Relatório diário automático**: um script gera o resumo do dia (comparação com os mesmos dias da semana, alertas por unidade, reclamações e resumo opcional por IA) e um fluxo do n8n envia por e-mail todo dia às 08:00. Guia em [automacao/README.md](automacao/README.md).
 - 🧾 **Triagem de avaliações**: a IA classifica cada comentário (sentimento, tema, urgência), resume os problemas mais frequentes e escreve um rascunho de resposta para o cliente.
 - 🔒 **SQL somente leitura**: o agente só executa `SELECT`, com o banco aberto em modo read-only.
 - 🔎 **Transparência**: cada resposta traz as consultas SQL usadas.
@@ -73,10 +74,6 @@ O modelo pode ser trocado com `MODELO_GEMINI` no `.env` (padrão: `gemini-3.5-fl
    ```
 4. *Deploy*. A chave fica só nos Secrets, nunca no código.
 
-## Planejado
-
-- ⏰ Automação diária de relatório (n8n)
-
 ## Tecnologias
 
-Python · Streamlit · Gemini API · SQLite · pandas · Plotly · n8n
+Python · Streamlit · Gemini API · SQLite · pandas · Plotly · n8n · pytest
