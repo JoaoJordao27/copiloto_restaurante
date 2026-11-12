@@ -1,5 +1,5 @@
 streamlit
-anthropic
+google-genai
 pandas
 plotly
 python-dotenv
