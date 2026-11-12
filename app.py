@@ -14,6 +14,7 @@ import streamlit as st
 
 from agente.agente import BANCO, perguntar
 from agente.triagem import MAX_AVALIACOES, sugerir_resposta, triar
+from dashboard import painel
 
 RAIZ = Path(__file__).resolve().parent
 st.set_page_config(page_title="Copiloto do Restaurante", page_icon=str(RAIZ / "assets" / "icone.png"),
@@ -180,7 +181,7 @@ with st.sidebar:
         '<div class="sub">Centro · Pinheiros · Vila Nova</div></div></div>',
         unsafe_allow_html=True,
     )
-    pagina = st.radio("Seção", ["💬 Chat com o analista", "🧾 Triagem de avaliações"],
+    pagina = st.radio("Seção", ["💬 Chat com o analista", "🧾 Triagem de avaliações", "📊 Painel de indicadores"],
                       label_visibility="collapsed")
     st.markdown(
         f'<div class="rotulo" style="margin-top:18px">Período</div>'
@@ -341,5 +342,7 @@ def pagina_avaliacoes():
 
 if pagina.startswith("💬"):
     pagina_chat()
-else:
+elif pagina.startswith("🧾"):
     pagina_avaliacoes()
+else:
+    painel(cabecalho)

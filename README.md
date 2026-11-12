@@ -16,10 +16,13 @@ Todos os dados são **sintéticos** (jun–out/2026, 3 unidades), gerados por `d
 
 ![Triagem de avaliações com IA](docs/triagem.png)
 
+![Painel de indicadores](docs/painel.png)
+
 ## O que já funciona
 
 - 💬 **Chat com agente de análise**: perguntas abertas como "por que o faturamento caiu em outubro?" fazem o agente investigar períodos, unidades, cancelamentos e avaliações antes de concluir.
 - 📈 **Gráficos nas respostas**: o agente decide quando um gráfico ajuda e o desenha (Plotly) a partir de uma consulta SQL.
+- 📊 **Painel de indicadores**: faturamento, ticket médio, cancelamentos, tempo de entrega e nota por unidade e por mês, com filtro de período, comparação com o período anterior e um alerta automático que aponta a unidade com maior queda.
 - 🧾 **Triagem de avaliações**: a IA classifica cada comentário (sentimento, tema, urgência), resume os problemas mais frequentes e escreve um rascunho de resposta para o cliente.
 - 🔒 **SQL somente leitura**: o agente só executa `SELECT`, com o banco aberto em modo read-only.
 - 🔎 **Transparência**: cada resposta traz as consultas SQL usadas.
@@ -72,7 +75,6 @@ O modelo pode ser trocado com `MODELO_GEMINI` no `.env` (padrão: `gemini-3.5-fl
 
 ## Planejado
 
-- 📊 Dashboard de indicadores
 - ⏰ Automação diária de relatório (n8n)
 
 ## Tecnologias
