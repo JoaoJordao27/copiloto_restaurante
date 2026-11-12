@@ -12,7 +12,7 @@ st.markdown(
     """
     <style>
     #MainMenu, footer {visibility: hidden;}
-    .block-container {padding-top: 2rem; max-width: 820px;}
+    .block-container {padding-top: 4rem; max-width: 820px;}
     .hero {
         background: linear-gradient(135deg, #E8590C 0%, #F59F00 100%);
         color: white; padding: 1.6rem 1.8rem; border-radius: 20px;

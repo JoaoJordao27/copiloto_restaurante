@@ -13,3 +13,6 @@ __pycache__/
 .idea/
 .DS_Store
 Thumbs.db
+
+# Segredos do Streamlit
+.streamlit/secrets.toml

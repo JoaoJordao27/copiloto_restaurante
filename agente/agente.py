@@ -20,7 +20,7 @@ RAIZ = Path(__file__).resolve().parent.parent
 BANCO = RAIZ / "dados" / "restaurante.db"
 MODELO = os.getenv("MODELO_GEMINI", "gemini-3.5-flash-lite")
 MAX_LINHAS = 200
-MAX_RODADAS = 8
+MAX_RODADAS = 12
 
 load_dotenv(RAIZ / ".env")
 

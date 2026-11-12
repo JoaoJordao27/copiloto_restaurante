@@ -6,6 +6,10 @@ Agente de IA que ajuda o dono de um restaurante de delivery a entender suas vend
 
 Todos os dados são **sintéticos** (jun–out/2026, 3 unidades), gerados por `dados/gerar_dados.py`. O projeto não usa dados reais nem marcas de terceiros.
 
+![Tela inicial do Copiloto](docs/inicio.png)
+
+![Conversa investigando a queda de faturamento](docs/conversa.png)
+
 ## O que já funciona
 
 - 💬 **Chat com agente de análise**: perguntas abertas como "por que o faturamento caiu em outubro?" fazem o agente investigar períodos, unidades, cancelamentos e avaliações antes de concluir.
@@ -33,6 +37,16 @@ python agente/agente.py "Como foram as vendas de outubro?"
 ```
 
 O modelo pode ser trocado com `MODELO_GEMINI` no `.env` (padrão: `gemini-3.5-flash-lite`).
+
+## Deploy gratuito (Streamlit Community Cloud)
+
+1. Acesse https://share.streamlit.io e entre com o GitHub.
+2. *Create app* → escolha este repositório, branch `main`, arquivo `app.py`.
+3. Em *Advanced settings → Secrets*, cole:
+   ```toml
+   GEMINI_API_KEY = "sua-chave"
+   ```
+4. *Deploy*. A chave fica só nos Secrets, nunca no código.
 
 ## Planejado
 
